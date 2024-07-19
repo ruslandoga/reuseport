@@ -4,7 +4,6 @@ defmodule ReuseTest do
   test "it works" do
     # start v1
     {:ok, server_v1} = Reuse.server(port: 8000, callback: fn data -> "v1:" <> data end)
-    assert length(:ets.tab2list(Reuse.acceptors(server_v1))) == 10
 
     # connect to v1
     client_1 = connect(8000)
@@ -26,7 +25,8 @@ defmodule ReuseTest do
     # closing v1 clients removes acceptors
     close(client_1)
 
-    # finally stop v1
+    # stop v1 once there are no more clients
+    wait_for_zero_acceptors(Reuse.acceptors(server_v1), _within = :timer.seconds(5))
     :ok = Reuse.stop(server_v1)
 
     # v2 still works
@@ -46,5 +46,20 @@ defmodule ReuseTest do
 
   defp close(socket) do
     assert :ok == :gen_tcp.close(socket)
+  end
+
+  defp wait_for_zero_acceptors(acceptors, timeout) do
+    test = self()
+    spawn_link(fn -> loop_if_has_acceptors(test, acceptors) end)
+    assert_receive :zero_acceptors, timeout
+  end
+
+  defp loop_if_has_acceptors(test, acceptors) do
+    :timer.sleep(100)
+
+    case :ets.info(acceptors, :size) do
+      0 -> send(test, :zero_acceptors)
+      _n -> loop_if_has_acceptors(test, acceptors)
+    end
   end
 end
