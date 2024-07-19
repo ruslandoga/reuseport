@@ -14,8 +14,6 @@ defmodule Reuse do
     GenServer.start_link(__MODULE__, opts, gen_opts)
   end
 
-  @type client_option :: {:count, pos_integer} | {:port, :inet.port_number()}
-
   @spec drain(pid | GenServer.name()) :: :ok
   def drain(server), do: GenServer.call(server, :drain)
 
