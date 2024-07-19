@@ -1,21 +1,8 @@
-# Reuse
+Short demo of SO_REUSEPORT in Elixir.
 
-**TODO: Add description**
+1. App V1 starts listening on localhost:8000 with SO_REUSEPORT.
+2. App V2 also starts listening on localhost:8000 with SO_REUSEPORT.
+3. App V1 starts draining, i.e. it stops accepting new connections by closing the listen socket and waits for the old connections to end.
+4. App V1 stops.
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `reuse` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:reuse, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/reuse>.
-
+Please see [tests](./test/reuse_test.exs) for details.
