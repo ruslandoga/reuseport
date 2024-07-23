@@ -1,7 +1,6 @@
 defmodule Reuse do
   @moduledoc File.read!("README.md")
   use GenServer
-  require Logger
 
   @type option ::
           {:port, :inet.port_number()}
