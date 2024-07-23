@@ -16,6 +16,6 @@ defmodule Reuse.MixProject do
   end
 
   defp deps do
-    []
+    [{:telemetry, "~> 1.2"}]
   end
 end

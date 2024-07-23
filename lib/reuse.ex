@@ -28,8 +28,6 @@ defmodule Reuse do
 
   @impl true
   def init(opts) do
-    Process.flag(:trap_exit, true)
-
     port = Keyword.get(opts, :port, 0)
     callback = Keyword.get(opts, :callback, &Function.identity/1)
 
@@ -71,20 +69,19 @@ defmodule Reuse do
   end
 
   @impl true
-  def handle_info({:EXIT, _pid, :emfile = reason}, state) do
-    Logger.error("no more file descriptors, shutting down")
-    {:stop, reason, state}
-  end
+  def handle_info({:DOWN, _ref, :process, pid, reason}, state) do
+    case reason do
+      :normal ->
+        remove_acceptor(state, pid)
+        {:noreply, state}
 
-  def handle_info({:EXIT, pid, :normal}, state) do
-    remove_acceptor(state, pid)
-    {:noreply, state}
-  end
+      :emfile ->
+        raise "no more file descriptors"
 
-  def handle_info({:EXIT, pid, reason}, state) do
-    Logger.error("acceptor #{inspect(pid)} crashed:\n" <> Exception.format_exit(reason))
-    remove_acceptor(state, pid)
-    {:noreply, state}
+      reason ->
+        :telemetry.execute([:reuse, :acceptor, :crash], reason)
+        {:noreply, state}
+    end
   end
 
   defp remove_acceptor({_socket, acceptors, _callback}, pid) do
@@ -92,12 +89,12 @@ defmodule Reuse do
   end
 
   defp spawn_acceptor({socket, acceptors, callback}) do
-    pid =
+    {pid, _ref} =
       :proc_lib.spawn_opt(
         __MODULE__,
         :accept,
         [_parent = self(), socket, callback],
-        [:link, fullsweep_after: 0]
+        [:monitor, fullsweep_after: 0]
       )
 
     :ets.insert(acceptors, {pid})
